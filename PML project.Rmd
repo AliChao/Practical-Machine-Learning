@@ -1,0 +1,64 @@
+---
+title: "Practical Machine Learning course project"
+author: "Chao, Yi Li"
+date: "Saturday, August 23, 2014"
+output: html_document
+---
+
+### Practical Machine Learning course project 
+##Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement ¡V a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset). 
+
+# 1. load packages and data
+
+```{r}
+setwd("g:/R_code")
+Sys.setlocale("LC_TIME", "C")
+library(caret)
+library(randomForest)
+
+##read csv
+data <-read.csv("data/training.csv", as.is=TRUE, na.strings=c("", NA))
+```
+
+#2. spilte the data to training group and testing group, 75% training data and 25% testing data, Then we can use training data to find the patern of classe.
+```{r}
+set.seed(8888)
+inTrain <- createDataPartition(y=data$classe, p = 0.75, list=FALSE)
+training <- data[inTrain,]
+testing <- data[-inTrain,]
+```
+
+#3. clean data, clean the datas which do not have the relation with result, for example : name, time , window number...and also, clean NA data, we only choice _x, _y, _z datas. 
+```{r}
+## clear  X,user_name ,raw_timestamp_part_1, raw_timestamp_part_2,cvtd_timestamp,new_window, num_window
+training <- training [,8:160]
+## delete NA col
+trainingnew2 <- training[,c(1:4,11:12,14:15,17:18,30:42,53:61,77:79,95,106:117,133,144:153)]
+
+## only _x,_y,_z and classe less ,and define classe is factor 
+trainingnew3 <- trainingnew2 [,c(11:19,24:32,37:45,50:59)]
+```
+
+#4. use the clean data to train and make a model.Because train is too slow, I change to use randomForest 
+```{r}
+trainingnew3[,37]<-as.factor(trainingnew3[,37])
+modelFitRF <- randomForest(classe ~ ., data=trainingnew3)
+```
+
+#5. predict the test data and find the result.We can know how the model is by confusionMatrix.
+```{r}
+predictionRF <- predict(modelFitRF, testing)
+result <- confusionMatrix(predictionRF, testing$classe)
+result 
+```
+
+#6. reture to pml-testing.csv, we use the model to predic 
+```{r}
+testdata <- read.csv('data/pml-testing.csv', as.is=TRUE, na.strings=c('', NA))
+predictiontest <- predict(modelFitRF, testdata)
+```
+The answer is 
+```{r}
+predictiontest
+```
